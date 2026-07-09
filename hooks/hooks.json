@@ -1,0 +1,16 @@
+{
+  "description": "Ensures PayPal best practices are consulted before generating integration code",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "If this file edit involves PayPal SDK, API calls, checkout, payments, or PayPal integration code: you MUST first load the paypal-best-practices skill and check the SDK version routing table before proceeding. Detect whether the project uses v5 (paypal.Buttons, sdk/js?client-id=) or v6 (createInstance, web-sdk/v6/core), then read the correct reference file. Return 'approve' to proceed."
+          }
+        ]
+      }
+    ]
+  }
+}
