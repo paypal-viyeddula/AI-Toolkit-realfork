@@ -21,7 +21,17 @@ A Claude Code plugin that integrates PayPal's APIs and MCP server into your deve
 
 ### Install
 
-Clone the repo and load it as a local plugin:
+PayPal AI Toolkit is available on the official Anthropic marketplace, which Claude Code adds automatically. Install it with:
+
+```
+/plugin install paypal@claude-plugins-official
+```
+
+Then run `/reload-plugins` to activate it.
+
+#### Local / development install
+
+To work on the plugin itself, clone the repo and load it directly instead:
 
 ```bash
 git clone https://github.com/paypal/AI-Toolkit.git
@@ -61,17 +71,17 @@ claude --plugin-dir /path/to/AI-Toolkit
 
 > **Use `settings.json`, not `~/.zshrc`.** GUI launches don't source `~/.zshrc`, and a line-wrapped `export` embeds a newline in the token that breaks the HTTP header.
 
-Tokens expire every ~9 hours. Run `/paypal:setup refresh` when you hit a 401.
+Tokens expire in up to 8 hours depending on scope — check the `expires_in` field in the response. Run `/paypal:setup refresh` when you hit a 401.
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `/paypal:doctor [symptom]` | Scan your codebase for PayPal integration issues |
-| `/paypal:explain-error <code>` | Explain a PayPal error code with causes and fixes |
-| `/paypal:sandbox [topic]` | Sandbox setup, test accounts, and testing tips |
-| `/paypal:setup [mode]` | Configure the plugin, verify MCP, refresh tokens |
-| `/paypal:test-accounts [topic]` | Test cards, BNPL, Venmo, webhooks, and scenarios |
+| Command                         | Description                                       |
+| ------------------------------- | ------------------------------------------------- |
+| `/paypal:doctor [symptom]`      | Scan your codebase for PayPal integration issues  |
+| `/paypal:explain-error <code>`  | Explain a PayPal error code with causes and fixes |
+| `/paypal:sandbox [topic]`       | Sandbox setup, test accounts, and testing tips    |
+| `/paypal:setup [mode]`          | Configure the plugin, verify MCP, refresh tokens  |
+| `/paypal:test-accounts [topic]` | Test cards, BNPL, Venmo, webhooks, and scenarios  |
 
 ### Examples
 

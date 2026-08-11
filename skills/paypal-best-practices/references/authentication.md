@@ -12,7 +12,7 @@ description: PayPal OAuth 2.0 access tokens, client credentials flow, idempotenc
 
 All PayPal API calls require [OAuth 2.0 authentication](https://developer.paypal.com/api/rest/authentication/). Use the client credentials flow: POST to `/v1/oauth2/token` with `grant_type=client_credentials` and HTTP Basic Auth using your Client ID and Secret.
 
-Access tokens expire in 32,400 seconds (9 hours) — always cache the token and refresh proactively rather than fetching a new token per request, since per-request token fetches add latency and risk hitting rate limits.
+Access tokens expire in up to 28,800 seconds (8 hours) depending on scope — always read the `expires_in` field from the token response rather than assuming a fixed value, cache the token, and refresh proactively rather than fetching a new token per request, since per-request token fetches add latency and risk hitting rate limits.
 
 ## Security Rules
 
@@ -26,12 +26,13 @@ Always include a `PayPal-Request-Id` header with a unique UUID on every POST req
 
 ## Environment URLs
 
-| Environment | Base URL |
-|-------------|----------|
-| Sandbox | `https://api-m.sandbox.paypal.com` |
-| Production | `https://api-m.paypal.com` |
+| Environment | Base URL                           |
+| ----------- | ---------------------------------- |
+| Sandbox     | `https://api-m.sandbox.paypal.com` |
+| Production  | `https://api-m.paypal.com`         |
 
 ## Live Documentation
+
 - [Apps, credentials & scopes — v6 docs](https://docs.paypal.ai/developer/how-to/apps-scopes-credentials.md)
 - [Authentication guide — v5 docs](https://developer.paypal.com/api/rest/authentication/)
 - [REST API reference](https://developer.paypal.com/api/rest/)
