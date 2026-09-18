@@ -8,18 +8,51 @@ If you find a bug, encounter an issue, or want to suggest an improvement, please
 
 ## Local Development and Testing
 
-Since this project is a Claude Code plugin consisting of commands, skills, and hooks:
-1. Clone the repository to your local machine.
-2. Load the plugin locally into Claude Code by running:
-   ```bash
-   claude --plugin-dir /path/to/AI-Toolkit
-   ```
-3. Manually test and verify the behavior of any commands or skills you modified or added.
+This project is an agent plugin consisting of commands, skills, and hooks. Clone the repository, then load it in the agent you are testing:
+
+**Claude Code**
+
+```bash
+claude --plugin-dir /path/to/AI-Toolkit
+```
+
+**OpenAI Codex**
+
+```bash
+codex plugin marketplace add /path/to/AI-Toolkit
+codex plugin add paypal@paypal-ai-toolkit
+```
+
+Then manually test and verify the behavior of any commands or skills you modified or added.
+
+## Commit Messages
+
+This project follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). Commit messages and pull request titles should use this format:
+
+```
+<type>[optional scope]: <description>
+```
+
+For example:
+
+```
+feat: allow provided config object to extend other configs
+```
+
+Common types:
+
+- `feat` — a new feature
+- `fix` — a bug fix
+- `docs` — documentation-only changes
+- `chore` — maintenance or tooling
+- `refactor` — a code change that neither fixes a bug nor adds a feature
+
+Breaking changes should include `!` after the type (for example `feat!: switch MCP transport`) and describe the break in the commit body. See the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/) for the full format.
 
 ## Submitting Pull Requests
 
 1. Fork the repository and create your branch from main.
 2. Implement your changes.
 3. Ensure all modified files and directories follow the existing project layout.
-4. Submit a Pull Request (PR) with a clear description of the changes and the problem they solve.
+4. Submit a Pull Request (PR) with a Conventional Commits style title and a clear description of the changes and the problem they solve.
 5. Include a source or citation for any factual claims when modifying files under `skills` to prevent unsourced claims from causing confusion.

@@ -1,13 +1,13 @@
 # PayPal AI Toolkit
 
-A Claude Code plugin that integrates PayPal's APIs and MCP server into your development workflow. Get AI-assisted help with PayPal payments, subscriptions, invoices, disputes, and more — directly in your editor.
+A plugin that integrates PayPal's APIs and MCP server into your AI coding workflow. Get AI-assisted help with PayPal payments, subscriptions, invoices, disputes, and more — in Claude Code, OpenAI Codex, and other compatible agents.
 
 ## Features
 
 - **Best practices Skill** — auto-injects PayPal API knowledge when you're working on payment integrations
-- **Commands** — quick reference commands for common developer tasks
-- **Hooks** — automatically checks PayPal best practices before Claude writes integration code
-- **MCP Server integration** — connects Claude to PayPal's sandbox MCP servers for direct API operations via natural language
+- **Commands** — quick reference commands for common developer tasks (Claude Code)
+- **Hooks** — automatically checks PayPal best practices before writing integration code
+- **MCP Server integration** — connects your agent to PayPal's sandbox MCP servers for direct API operations via natural language
 
 ![Demo of installation and usage](https://github.com/user-attachments/assets/787a2b4c-4276-422c-9124-fd535571a68c)
 
@@ -15,11 +15,11 @@ A Claude Code plugin that integrates PayPal's APIs and MCP server into your deve
 
 ### Prerequisites
 
-- Claude Code (`claude --version`)
 - A PayPal Developer account at https://developer.paypal.com
 - A PayPal sandbox access token
+- Claude Code (`claude --version`) and/or OpenAI Codex (`codex --version`)
 
-### Install
+### Claude Code
 
 PayPal AI Toolkit is available on the official Anthropic marketplace, which Claude Code adds automatically. Install it with:
 
@@ -44,6 +44,25 @@ cd your-project/
 claude --plugin-dir /path/to/AI-Toolkit
 ```
 
+### OpenAI Codex
+
+Add the PayPal marketplace, then install the plugin:
+
+```bash
+codex plugin marketplace add paypal/AI-Toolkit
+codex plugin add paypal@paypal-ai-toolkit
+```
+
+#### Local / development install
+
+```bash
+git clone https://github.com/paypal/AI-Toolkit.git
+codex plugin marketplace add /path/to/AI-Toolkit
+codex plugin add paypal@paypal-ai-toolkit
+```
+
+Restart Codex after installing so skills and the sandbox MCP server load.
+
 ### Configure your sandbox access token
 
 1. Generate a sandbox access token:
@@ -57,7 +76,9 @@ claude --plugin-dir /path/to/AI-Toolkit
 
    Get the client ID and secret from the [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/applications/sandbox).
 
-2. Paste the single-line value into `~/.claude/settings.json`, merging into the existing `"env"` block:
+2. Paste the single-line value into your agent's config.
+
+   **Claude Code** — merge into the existing `"env"` block in `~/.claude/settings.json`:
 
    ```json
    "env": {
@@ -65,15 +86,24 @@ claude --plugin-dir /path/to/AI-Toolkit
    }
    ```
 
-3. **Fully quit Claude Code** (close the app — not just `/clear`) and reopen.
+   **OpenAI Codex** — merge into `~/.codex/config.toml`:
 
-4. Run `/paypal:setup` to verify.
+   ```toml
+   [shell_environment_policy.set]
+   PAYPAL_SANDBOX_ACCESS_TOKEN = "A21AA…"
+   ```
 
-> **Use `settings.json`, not `~/.zshrc`.** GUI launches don't source `~/.zshrc`, and a line-wrapped `export` embeds a newline in the token that breaks the HTTP header.
+3. **Fully quit and reopen** the agent (close the app — not just `/clear`).
+
+4. In Claude Code, run `/paypal:setup` to verify. In Codex, ask the agent to list PayPal MCP tools or create a sandbox invoice.
+
+> **Use the agent config file, not `~/.zshrc`.** GUI launches don't source `~/.zshrc`, and a line-wrapped `export` embeds a newline in the token that breaks the HTTP header.
 
 Tokens expire in up to 8 hours depending on scope — check the `expires_in` field in the response. Run `/paypal:setup refresh` when you hit a 401.
 
 ## Commands
+
+Slash commands are available in Claude Code. Codex uses the same skills and MCP server through natural language.
 
 | Command                         | Description                                       |
 | ------------------------------- | ------------------------------------------------- |
@@ -108,11 +138,11 @@ The plugin connects to PayPal's sandbox MCP server, which exposes tools for:
 
 ### Transport and environments
 
-The server uses **SSE** at the `/sse` path. `paypal-sandbox` activates once you set `PAYPAL_SANDBOX_ACCESS_TOKEN` in `~/.claude/settings.json`.
+The server uses **SSE** at the `/sse` path. `paypal-sandbox` activates once you set `PAYPAL_SANDBOX_ACCESS_TOKEN` in `~/.claude/settings.json` (Claude Code) or `~/.codex/config.toml` (Codex).
 
 ## Skills
 
-The `paypal-best-practices` skill is automatically invoked when Claude detects you're working on PayPal integrations. It provides:
+The `paypal-best-practices` skill is automatically invoked when your agent detects you're working on PayPal integrations. It provides:
 
 - Recommended APIs and deprecated APIs to avoid
 - Authentication and credential best practices
@@ -125,15 +155,20 @@ The `paypal-routing` skill routes PayPal-related questions to the right command 
 
 ## Hooks
 
-A `PreToolUse` hook checks whether a file edit touches PayPal SDK, API, or checkout code. If it does, Claude is required to consult the `paypal-best-practices` skill and the correct SDK version reference (v5 or v6) before writing the code.
+A `PreToolUse` hook checks whether a file edit touches PayPal SDK, API, or checkout code. If it does, the agent is required to consult the `paypal-best-practices` skill and the correct SDK version reference (v5 or v6) before writing the code.
 
 ## Plugin Structure
 
 ```
 AI-Toolkit/
+├── .agents/
+│   └── plugins/
+│       └── marketplace.json     # Codex marketplace catalog
 ├── .claude-plugin/
-│   ├── marketplace.json     # Marketplace registry (for /plugin install)
-│   └── plugin.json          # Plugin manifest
+│   ├── marketplace.json     # Claude Code marketplace registry
+│   └── plugin.json          # Claude Code plugin manifest
+├── .codex-plugin/
+│   └── plugin.json          # Codex plugin manifest
 ├── .mcp.json                # PayPal sandbox MCP server (SSE)
 ├── skills/
 │   ├── paypal-best-practices/
@@ -150,7 +185,18 @@ AI-Toolkit/
 ├── hooks/
 │   └── hooks.json           # Pre-write best-practices check
 ├── LICENSE                  # Apache-2.0
+├── CONTRIBUTING.md          # Contribution and commit guidelines
 └── README.md
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report issues, develop locally, and submit pull requests.
+
+Commit messages and PR titles should follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), for example:
+
+```
+feat: allow provided config object to extend other configs
 ```
 
 ## Resources
