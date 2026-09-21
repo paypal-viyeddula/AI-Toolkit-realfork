@@ -63,43 +63,32 @@ codex plugin add paypal@paypal-ai-toolkit
 
 Restart Codex after installing so skills and the sandbox MCP server load.
 
-### Configure your sandbox access token
+### Configure your sandbox access
 
-1. Generate a sandbox access token:
+**Claude Code** — run `/paypal:setup` and follow the prompts, or just add your sandbox Client ID/Secret to your project's `.env`:
 
-   ```bash
-   curl -X POST https://api-m.sandbox.paypal.com/v1/oauth2/token \
-     -u "YOUR_SANDBOX_CLIENT_ID:YOUR_SANDBOX_CLIENT_SECRET" \
-     -d "grant_type=client_credentials" \
-     | jq -r .access_token
-   ```
+```bash
+PAYPAL_CLIENT_ID=your_client_id
+PAYPAL_CLIENT_SECRET=your_client_secret
+```
 
-   Get the client ID and secret from the [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/applications/sandbox).
+The plugin reads these directly from `.env` and mints/refreshes the access token automatically — no manual token regeneration, no restart needed after it expires.
 
-2. Paste the single-line value into your agent's config.
+**OpenAI Codex** — generate a token and add it to `~/.codex/config.toml`:
 
-   **Claude Code** — merge into the existing `"env"` block in `~/.claude/settings.json`:
+```bash
+curl -X POST https://api-m.sandbox.paypal.com/v1/oauth2/token \
+  -u "YOUR_SANDBOX_CLIENT_ID:YOUR_SANDBOX_CLIENT_SECRET" \
+  -d "grant_type=client_credentials" \
+  | jq -r .access_token
+```
 
-   ```json
-   "env": {
-     "PAYPAL_SANDBOX_ACCESS_TOKEN": "A21AA…"
-   }
-   ```
+```toml
+[shell_environment_policy.set]
+PAYPAL_SANDBOX_ACCESS_TOKEN = "A21AA…"
+```
 
-   **OpenAI Codex** — merge into `~/.codex/config.toml`:
-
-   ```toml
-   [shell_environment_policy.set]
-   PAYPAL_SANDBOX_ACCESS_TOKEN = "A21AA…"
-   ```
-
-3. **Fully quit and reopen** the agent (close the app — not just `/clear`).
-
-4. In Claude Code, run `/paypal:setup` to verify. In Codex, ask the agent to list PayPal MCP tools or create a sandbox invoice.
-
-> **Use the agent config file, not `~/.zshrc`.** GUI launches don't source `~/.zshrc`, and a line-wrapped `export` embeds a newline in the token that breaks the HTTP header.
-
-Tokens expire in up to 8 hours depending on scope — check the `expires_in` field in the response. Run `/paypal:setup refresh` when you hit a 401.
+Fully quit and reopen Codex. Tokens expire in up to 8 hours — regenerate when you hit a 401.
 
 ## Commands
 
@@ -138,7 +127,7 @@ The plugin connects to PayPal's sandbox MCP server, which exposes tools for:
 
 ### Transport and environments
 
-The server uses **SSE** at the `/sse` path. `paypal-sandbox` activates once you set `PAYPAL_SANDBOX_ACCESS_TOKEN` in `~/.claude/settings.json` (Claude Code) or `~/.codex/config.toml` (Codex).
+The server uses **SSE** at the `/sse` path. `paypal-sandbox` activates once you've configured access via `/paypal:setup` (Claude Code) or `PAYPAL_SANDBOX_ACCESS_TOKEN` in `~/.codex/config.toml` (Codex).
 
 ## Skills
 

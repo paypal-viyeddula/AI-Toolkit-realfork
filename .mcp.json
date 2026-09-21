@@ -5,7 +5,8 @@
       "url": "https://mcp.sandbox.paypal.com/sse",
       "headers": {
         "Authorization": "Bearer ${PAYPAL_SANDBOX_ACCESS_TOKEN}"
-      }
+      },
+      "headersHelper": "[ -f .env ] || { echo '{}'; exit 0; }\nCACHE=\".paypal_token_cache.json\"\nif [ -f \"$CACHE\" ]; then\n  MTIME=$(stat -f %m \"$CACHE\" 2>/dev/null || stat -c %Y \"$CACHE\" 2>/dev/null || echo 0)\n  AGE=$(( $(date +%s) - MTIME ))\n  if [ \"$AGE\" -lt 28800 ]; then cat \"$CACHE\"; exit 0; fi\nfi\nCID=$(grep -m1 '^PAYPAL_CLIENT_ID=' .env | cut -d= -f2- | sed -e 's/^\"//' -e 's/\"$//' -e \"s/^'//\" -e \"s/'$//\")\nCSEC=$(grep -m1 '^PAYPAL_CLIENT_SECRET=' .env | cut -d= -f2- | sed -e 's/^\"//' -e 's/\"$//' -e \"s/^'//\" -e \"s/'$//\")\n[ -n \"$CID\" ] && [ -n \"$CSEC\" ] || { echo '{}'; exit 0; }\nTOKEN=$(curl -s -m 8 -u \"$CID:$CSEC\" -d grant_type=client_credentials https://api-m.sandbox.paypal.com/v1/oauth2/token | sed -n 's/.*\"access_token\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p')\n[ -n \"$TOKEN\" ] || { echo '{}'; exit 0; }\n(umask 077; printf '{\"Authorization\":\"Bearer %s\"}' \"$TOKEN\" > \"$CACHE\")\nchmod 600 \"$CACHE\" 2>/dev/null\ncat \"$CACHE\"\n"
     }
   }
 }
