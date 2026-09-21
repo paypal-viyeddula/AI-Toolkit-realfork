@@ -72,7 +72,7 @@ Severity levels:
 
 After the report, for every CRITICAL and WARNING issue:
 
-1. Show the **broken code** (exact snippet from the file)
+1. Show the **broken code** (exact snippet from the file) — **except for Credentials & Security findings involving an actual secret value** (hardcoded `PAYPAL_CLIENT_SECRET`, tokens, keys): redact the secret in the snippet (e.g. `PAYPAL_CLIENT_SECRET = "***REDACTED***"`), showing only the surrounding code and the variable/line it's on. Never echo, print, or quote the real secret value in the report or chat.
 2. Show the **fixed code** with explanation
 3. Ask: _"Would you like me to apply this fix?"_ — and apply it if the user says yes
 
