@@ -76,17 +76,17 @@ curl -s -X GET https://api-m.sandbox.paypal.com/v1/notifications/webhooks \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 
 # Get one subscription's current state
-curl -s -X GET https://api-m.sandbox.paypal.com/v1/notifications/webhooks/$WEBHOOK_ID \
+curl -s -X GET "https://api-m.sandbox.paypal.com/v1/notifications/webhooks/$WEBHOOK_ID" \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 
 # Update the URL (e.g. if the endpoint's address changed)
-curl -s -X PATCH https://api-m.sandbox.paypal.com/v1/notifications/webhooks/$WEBHOOK_ID \
+curl -s -X PATCH "https://api-m.sandbox.paypal.com/v1/notifications/webhooks/$WEBHOOK_ID" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '[{"op": "replace", "path": "/url", "value": "'"$NEW_PUBLIC_URL"'/webhooks/paypal"}]'
 
 # Delete
-curl -s -w "\n%{http_code}" -X DELETE https://api-m.sandbox.paypal.com/v1/notifications/webhooks/$WEBHOOK_ID \
+curl -s -w "\n%{http_code}" -X DELETE "https://api-m.sandbox.paypal.com/v1/notifications/webhooks/$WEBHOOK_ID" \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
@@ -100,7 +100,8 @@ PayPal's own API resolves everything by its `id` only — there's no name field 
 
 ```bash
 MAP_FILE="$HOME/.claude/paypal-webhook-subscriptions.json"
-[ -f "$MAP_FILE" ] || echo '{}' > "$MAP_FILE"
+mkdir -p -m 700 "$HOME/.claude" || { echo "Could not create $HOME/.claude — check permissions." >&2; exit 1; }
+[ -f "$MAP_FILE" ] || (umask 077; echo '{}' > "$MAP_FILE")
 
 # Look up an existing entry for the given name (safe: value passed via --arg)
 EXISTING_ID=$(jq -r --arg n "$SUB_NAME" '.[$n].webhook_id // empty' "$MAP_FILE")
@@ -118,10 +119,13 @@ EXISTING_ID=$(jq -r --arg n "$SUB_NAME" '.[$n].webhook_id // empty' "$MAP_FILE")
 3. **Confirmed still live:**
    - **Developer wants it updated ("update my webhook named X", "--update-if-exists"):** `PATCH` it —
      ```bash
-     curl -s -X PATCH https://api-m.sandbox.paypal.com/v1/notifications/webhooks/$EXISTING_ID \
+     PATCH_RESP=$(curl -s -w "\n%{http_code}" -X PATCH "https://api-m.sandbox.paypal.com/v1/notifications/webhooks/$EXISTING_ID" \
        -H "Authorization: Bearer $ACCESS_TOKEN" \
        -H "Content-Type: application/json" \
-       -d '[{"op": "replace", "path": "/url", "value": "'"${PUBLIC_URL}/webhooks/paypal"'"}]'
+       -d '[{"op": "replace", "path": "/url", "value": "'"${PUBLIC_URL}/webhooks/paypal"'"}]')
+     PATCH_CODE=$(echo "$PATCH_RESP" | tail -1)
+     PATCH_BODY=$(echo "$PATCH_RESP" | sed '$d')
+     [ "${PATCH_CODE:0:1}" = "2" ] || { echo "PATCH failed (HTTP $PATCH_CODE): $PATCH_BODY — not updating the local map or reporting success." >&2; exit 1; }
      WEBHOOK_ID="$EXISTING_ID"
      TMP="$(mktemp)"
      jq --arg n "$SUB_NAME" --arg id "$WEBHOOK_ID" --arg url "${PUBLIC_URL}/webhooks/paypal" \
@@ -129,7 +133,7 @@ EXISTING_ID=$(jq -r --arg n "$SUB_NAME" '.[$n].webhook_id // empty' "$MAP_FILE")
         '.[$n] = {webhook_id: $id, url: $url, event_types: ["PAYMENT.CAPTURE.COMPLETED"], updated_at: $ts}' \
         "$MAP_FILE" > "$TMP" && mv "$TMP" "$MAP_FILE"
      ```
-     Report this as "updated existing subscription `<name>` (`$EXISTING_ID`)," not a new creation.
+     Only record the update and report success once `PATCH_CODE` confirms a 2xx — report this as "updated existing subscription `<name>` (`$EXISTING_ID`)," not a new creation. On failure, surface the actual `http_code` and body rather than silently updating local state.
    - **Developer just asked to register/create, with no explicit update intent:** do **not** create a duplicate or silently update anything. Tell them a subscription named `<name>` already exists (`$EXISTING_ID`, registered to `<url>`), and that they can ask to update it, or give a different name to register a separate one.
 
 This mapping is a local convenience only — never sent to PayPal, no bearing on the real subscription's `id`, and contains no secrets (just IDs, URLs, and timestamps). If the file is deleted or edited by hand, the next name lookup simply finds nothing and falls back to a normal create. No name given at all means behavior is unchanged: every call creates a new subscription, resolved only by the real `id`.
@@ -264,9 +268,15 @@ A window with more than `page_size` events doesn't all come back in one response
 ```bash
 URL="https://api-m.sandbox.paypal.com/v1/notifications/webhooks-events?${QUERY}"
 while [ -n "$URL" ]; do
-  RESP=$(curl -s -X GET "$URL" -H "Authorization: Bearer $ACCESS_TOKEN")
-  echo "$RESP" | jq -c '.events[]?'
-  URL=$(echo "$RESP" | jq -r '[.links[]? | select(.rel == "next") | .href][0] // empty')
+  RESP=$(curl -s -w "\n%{http_code}" -X GET "$URL" -H "Authorization: Bearer $ACCESS_TOKEN")
+  CODE=$(echo "$RESP" | tail -1)
+  BODY=$(echo "$RESP" | sed '$d')
+  if [ "${CODE:0:1}" != "2" ]; then
+    echo "History request failed (HTTP $CODE) — stopping rather than treating this as an empty page: $BODY" >&2
+    exit 1
+  fi
+  echo "$BODY" | jq -c '.events[]?'
+  URL=$(echo "$BODY" | jq -r '[.links[]? | select(.rel == "next") | .href][0] // empty')
 done
 ```
 
@@ -285,8 +295,20 @@ An event only shows up here if an active subscription with a URL that actually r
 Start a background polling loop with the Bash tool (`run_in_background: true`) so the conversation turn isn't blocked — the developer can go trigger a transaction or do anything else while it runs. `$WEBHOOK_ID` isn't always agent-generated — it can come verbatim from what a developer pastes in chat, or from the local name-to-ID map — so **`$SEEN_FILE` is exported and read in Python via `os.environ`, never spliced into the `python3 -c` program string**, for the same reason as the `--name` upsert above: splicing would let a value containing a quote or parenthesis break out of the string and run as code. This loop's `curl` calls carry an explicit timeout, unlike the one-shot calls elsewhere in this file — a hang here would block the loop from ever reaching its own 60-minute ceiling check, where a hung one-shot call just blocks a single turn the developer can see and interrupt.
 
 ```bash
-WATCH_FILE="/tmp/paypal-webhook-watch-$WEBHOOK_ID.ndjson"
-SEEN_FILE="/tmp/paypal-webhook-watch-$WEBHOOK_ID.seen"
+[[ "$WEBHOOK_ID" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "Invalid webhook ID: $WEBHOOK_ID (letters, digits, - and _ only)" >&2; exit 1; }
+WATCH_DIR="/tmp/paypal-webhook-watch-$WEBHOOK_ID"
+if [ -e "$WATCH_DIR" ] || [ -L "$WATCH_DIR" ]; then
+  OWNER_UID=$(stat -f %u "$WATCH_DIR" 2>/dev/null || stat -c %u "$WATCH_DIR" 2>/dev/null)
+  PERM=$(stat -f %Lp "$WATCH_DIR" 2>/dev/null || stat -c %a "$WATCH_DIR" 2>/dev/null)
+  if [ -L "$WATCH_DIR" ] || [ "$OWNER_UID" != "$(id -u)" ] || [ "$PERM" != "700" ]; then
+    echo "Refusing to use $WATCH_DIR — it already exists and isn't a private directory I own (possible pre-planted path on a shared host)." >&2
+    exit 1
+  fi
+else
+  mkdir -m 700 "$WATCH_DIR" || exit 1
+fi
+WATCH_FILE="$WATCH_DIR/events.ndjson"
+SEEN_FILE="$WATCH_DIR/seen.txt"
 export SEEN_FILE
 : > "$WATCH_FILE"; : > "$SEEN_FILE"
 END_TIME=$(( $(date +%s) + 3600 ))   # 60-minute safety ceiling
@@ -300,6 +322,7 @@ while [ "$(date +%s)" -lt "$END_TIME" ]; do
     CODE=$(echo "$RESP" | tail -1)
     BODY=$(echo "$RESP" | sed '$d')
     if [ "$CODE" = "429" ]; then
+      echo "{\"type\":\"error\",\"http_code\":\"429\"}" >> "$WATCH_FILE"
       sleep "$BACKOFF"; BACKOFF=$(( BACKOFF < 60 ? BACKOFF * 2 : 60 ))
       continue 2
     fi
@@ -333,20 +356,28 @@ echo "WATCH_ENDED_AT_CEILING" >> "$WATCH_FILE"
 - **Rate-limit floor**: this endpoint shares a request budget across all callers — the 20-second poll interval here is intentionally conservative, with exponential backoff (capped at 60s) on `429`.
 - **Self-enforced ceiling**: stops automatically after 60 minutes so a forgotten background job doesn't poll indefinitely.
 - **Failed polls are never parsed and never silent**: a connection failure, an expired token, or any other non-2xx response writes a visible `{"type":"error","http_code":"..."}` marker to `$WATCH_FILE` instead of being fed to the JSON parser — this is what lets status checks tell "the connection is broken" apart from "sandbox just hasn't delivered yet."
-- Both `$WATCH_FILE` and `$SEEN_FILE` are ephemeral runtime files under `/tmp`, named using `$WEBHOOK_ID` so starting, checking, or stopping "the watch for subscription X" resolves to the right _files_ deterministically even with more than one watch running — not committed anywhere, gone after reboot. That naming is local bookkeeping only, though: per the app-wide note above, two concurrent watches for two different subscriptions on the same app will record the same events in both files.
+- Both `$WATCH_FILE` and `$SEEN_FILE` live inside `$WATCH_DIR`, a per-watch directory under `/tmp` created with mode `700` — not world-readable, unlike a loose file in shared `/tmp` — named using `$WEBHOOK_ID` so starting, checking, or stopping "the watch for subscription X" resolves to the right _directory_ deterministically even with more than one watch running. Ephemeral: not committed anywhere, gone after reboot. That naming is local bookkeeping only, though: per the app-wide note above, two concurrent watches for two different subscriptions on the same app will record the same events in both.
 - **No forwarding, no invented signature scheme.** There is no durable secret storage behind this plugin to back a dev-mode re-signing scheme, and inventing one would directly contradict the Fidelity Gap above — never build a second, different pseudo-signature shortcut here. If a developer asks for forwarding, say it's explicitly out of scope and point them back to real-transaction verification.
 
 ### Check progress
 
 ```bash
+[[ "$WEBHOOK_ID" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "Invalid webhook ID: $WEBHOOK_ID (letters, digits, - and _ only)" >&2; exit 1; }
+WATCH_DIR="/tmp/paypal-webhook-watch-$WEBHOOK_ID"
+OWNER_UID=$(stat -f %u "$WATCH_DIR" 2>/dev/null || stat -c %u "$WATCH_DIR" 2>/dev/null)
+PERM=$(stat -f %Lp "$WATCH_DIR" 2>/dev/null || stat -c %a "$WATCH_DIR" 2>/dev/null)
+if [ -L "$WATCH_DIR" ] || [ "$OWNER_UID" != "$(id -u)" ] || [ "$PERM" != "700" ]; then
+  echo "Refusing to read $WATCH_DIR — it isn't a private directory I own (possible pre-planted path, or no watch has started yet)." >&2
+  exit 1
+fi
 echo "Events seen so far:"
-grep -c '"event_type"' "/tmp/paypal-webhook-watch-$WEBHOOK_ID.ndjson" 2>/dev/null
+grep -c '"event_type"' "$WATCH_DIR/events.ndjson" 2>/dev/null
 echo "Poll errors:"
-grep -c '"type":"error"' "/tmp/paypal-webhook-watch-$WEBHOOK_ID.ndjson" 2>/dev/null
-tail -5 "/tmp/paypal-webhook-watch-$WEBHOOK_ID.ndjson" 2>/dev/null
+grep -c '"type":"error"' "$WATCH_DIR/events.ndjson" 2>/dev/null
+tail -5 "$WATCH_DIR/events.ndjson" 2>/dev/null
 ```
 
-If the error count is climbing, surface the most recent `http_code` rather than letting it look like ordinary latency — a `401` means the token expired (re-mint it), anything else likely means the network path to `api-m.sandbox.paypal.com` is down. Also report whether the background job is still running (check via the Bash tool's background-task status for the job you started).
+If the error count is climbing, surface the most recent `http_code` rather than letting it look like ordinary latency — a `401` means the token expired, a `429` means the shared rate-limit budget was hit (the loop backs off and recovers on its own, not a sign of an outage), anything else likely means the network path to `api-m.sandbox.paypal.com` is down. **Re-minting `$ACCESS_TOKEN` in the current conversation does not fix an already-running watch** — that background process captured its own copy of the token when it started and has no way to pick up a new one. After a 401, explicitly stop the watch (below), re-mint the token, then start a new watch. Also report whether the background job is still running (check via the Bash tool's background-task status for the job you started).
 
 ### Stop watching
 
