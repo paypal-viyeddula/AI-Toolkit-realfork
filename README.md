@@ -206,3 +206,4 @@ feat: allow provided config object to extend other configs
 - [PayPal MCP Server](https://docs.paypal.ai/developer/tools/ai/mcp-quickstart)
 - [PayPal Agent Toolkit](https://github.com/paypal/agent-toolkit)
 - [PayPal Developer Dashboard](https://developer.paypal.com/dashboard)
+- [PayPal Developer Discord](http://developer.paypal.com/discord)
