@@ -1,18 +1,28 @@
 # PayPal Payments Power
 
-See [plugin.json](./plugin.json) for the power manifest, [mcp.json](./mcp.json) for MCP server configuration, and [skills/paypal-best-practices/SKILL.md](./skills/paypal-best-practices/SKILL.md) for setup, configuration, and usage documentation.
+Build PayPal integrations in Kiro — checkout, Pay Later, Venmo, subscriptions, invoicing, disputes, refunds, payouts, Fastlane, and webhooks — with live sandbox operations through PayPal's MCP server.
+
+## What's Included
+
+- **Skill** `paypal-best-practices` — integration guidance and code patterns (JS SDK v5/v6, server-side orders, webhooks, 3D Secure, Fastlane)
+- **MCP server** `paypal-sandbox` — sandbox tools for orders, invoices, subscriptions, products, disputes, refunds, shipment tracking, and transactions
 
 ## Install
 
-In Kiro, open the **Powers** panel → **Add Custom Power** → **Import power from GitHub**, and enter `https://github.com/paypal/AI-Toolkit/tree/main/kiro`. Then set `PAYPAL_SANDBOX_ACCESS_TOKEN` on the installed power via **Open powers config** (see the setup note in [SKILL.md](./skills/paypal-best-practices/SKILL.md#using-the-paypal-sandbox-mcp-server)).
+In Kiro, open **Powers** → **Add Custom Power** → **Import power from GitHub** and enter `https://github.com/paypal/AI-Toolkit/tree/main/kiro`. Then set your sandbox access token via **Open powers config** (see [setup](./skills/paypal-best-practices/SKILL.md#using-the-paypal-sandbox-mcp-server)).
 
-## Maintaining
+## Usage
 
-`skills/paypal-best-practices/references/*.md` mirror the root [`skills/paypal-best-practices/references/`](../skills/paypal-best-practices/references/) used by the Claude Code, Codex, and Cursor plugins, minus the per-file frontmatter and agent-specific slash-command references. When you change a root reference, apply the same change here in the same PR.
+- "Add PayPal checkout with Pay Later to my Next.js app"
+- "Create and send a sandbox invoice for $50"
+- "Help me verify PayPal webhook signatures"
+
+## Support
+
+[GitHub Issues](https://github.com/paypal/AI-Toolkit/issues) · [PayPal Developer Support](https://developer.paypal.com/support/) · [PayPal Developer Docs](https://developer.paypal.com/docs/)
 
 **Privacy Policy:** [PayPal Privacy Statement](https://www.paypal.com/us/legalhub/paypal/privacy-full)
 
-- Docs: https://developer.paypal.com/docs/
-- Repository / issues: https://github.com/paypal/AI-Toolkit
+## License
 
-**License:** Apache-2.0
+Apache-2.0 — see [LICENSE](../LICENSE)
