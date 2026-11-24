@@ -1,0 +1,26 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "paypal",
+  "version": "1.0.0",
+  "description": "Build payment integrations with PayPal - accept payments, add Pay Later and Venmo, manage subscriptions, handle invoices, and process disputes",
+  "author": {
+    "name": "PayPal",
+    "url": "https://developer.paypal.com"
+  },
+  "homepage": "https://developer.paypal.com/docs/",
+  "repository": "https://github.com/paypal/AI-Toolkit",
+  "license": "Apache-2.0",
+  "keywords": [
+    "paypal",
+    "payments",
+    "checkout",
+    "subscriptions",
+    "invoices",
+    "disputes",
+    "bnpl",
+    "pay later",
+    "venmo",
+    "mcp",
+    "commerce"
+  ]
+}

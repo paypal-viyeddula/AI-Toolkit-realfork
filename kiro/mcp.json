@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "paypal-sandbox": {
+      "type": "sse",
+      "url": "https://mcp.sandbox.paypal.com/sse",
+      "headers": {
+        "Authorization": "Bearer ${PAYPAL_SANDBOX_ACCESS_TOKEN}"
+      }
+    }
+  }
+}

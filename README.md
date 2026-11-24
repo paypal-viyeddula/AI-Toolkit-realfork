@@ -1,6 +1,6 @@
 # PayPal AI Toolkit
 
-A plugin that integrates PayPal's APIs and MCP server into your AI coding workflow. Get AI-assisted help with PayPal payments, subscriptions, invoices, disputes, and more — in Claude Code, OpenAI Codex, Cursor, IBM Bob, and other compatible agents.
+A plugin that integrates PayPal's APIs and MCP server into your AI coding workflow. Get AI-assisted help with PayPal payments, subscriptions, invoices, disputes, and more — in Claude Code, OpenAI Codex, Cursor, Kiro, IBM Bob, and other compatible agents.
 
 ## Features
 
@@ -17,7 +17,7 @@ A plugin that integrates PayPal's APIs and MCP server into your AI coding workfl
 
 - A PayPal Developer account at https://developer.paypal.com
 - A PayPal sandbox access token
-- Claude Code (`claude --version`), OpenAI Codex (`codex --version`), Cursor, and/or IBM Bob
+- Claude Code (`claude --version`), OpenAI Codex (`codex --version`), Cursor, Kiro, and/or IBM Bob
 
 ### Claude Code
 
@@ -105,6 +105,16 @@ cd AI-Toolkit
 
 IBM Bob automatically discovers and loads skills from `.bob/skills/` and the sandbox MCP server from `.bob/mcp.json`. The Bob config connects to `https://mcp.sandbox.paypal.com/mcp` over Streamable HTTP and contains no credentials. When Bob first connects, it prompts you to authenticate in your browser (see [MCP OAuth authentication](https://bob.ibm.com/docs/ide/configuration/mcp/mcp-oauth)). Check the connection status under **Settings → MCP**. IBM Bob users can skip the sandbox access token section below.
 
+### Kiro
+
+The Kiro power lives in [`kiro/`](kiro/). In Kiro, open the **Powers** panel → **Add Custom Power** → **Import power from GitHub**, and enter:
+
+```
+https://github.com/paypal/AI-Toolkit/tree/main/kiro
+```
+
+The power activates on PayPal-related keywords and loads the `paypal-best-practices` skill and the `paypal-sandbox` MCP server.
+
 ### Configure your sandbox access token
 
 1. Generate a sandbox access token:
@@ -137,9 +147,11 @@ IBM Bob automatically discovers and loads skills from `.bob/skills/` and the san
 
    **Cursor** — after installing the plugin, open **Customize → Plugins → PayPal → Configure** and paste the token. Cursor stores it and substitutes `${PAYPAL_SANDBOX_ACCESS_TOKEN}` in `.mcp.json`. A GUI-launched Cursor does not inherit `export` from `~/.zshrc`.
 
+   **Kiro** — open the PayPal power in the **Powers** panel, click **Open powers config**, and set the token in the installed power's `paypal-sandbox` headers. Editing `.kiro/settings/mcp.json` instead only changes what the sidebar shows, not the config the power uses.
+
 3. **Fully quit and reopen** the agent (close the app — not just `/clear`).
 
-4. In Claude Code, run `/paypal:setup` to verify. In Codex, Cursor, or IBM Bob, ask the agent to list PayPal MCP tools or create a sandbox invoice.
+4. In Claude Code, run `/paypal:setup` to verify. In Codex, Cursor, Kiro, or IBM Bob, ask the agent to list PayPal MCP tools or create a sandbox invoice.
 
 > **Use the agent config or Cursor plugin Configure panel, not `~/.zshrc`.** GUI launches don't source `~/.zshrc`, and a line-wrapped `export` embeds a newline in the token that breaks the HTTP header.
 
